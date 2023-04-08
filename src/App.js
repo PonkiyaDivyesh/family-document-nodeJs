@@ -5,6 +5,7 @@ const bodyParser = require("body-parser")
 
 require("./db/conn")
 const userRouter = require("./routers/userRouters");
+const webRouter = require("./routers/webRouter");
 
 const app = express()
 const port = process.env.PORT || 3002
@@ -15,6 +16,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use('/api/v1', userRouter)
+app.use('/', webRouter)
 
 app.listen(port, () => {
     console.log(`connection is setup at ${port}`);

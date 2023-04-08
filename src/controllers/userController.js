@@ -1,6 +1,8 @@
 const pool = require("../db/conn");
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
+const rendomstring = require('randomstring');
+const sendMail = require('../helper/sendMail');
 
 exports.userCreate = async (req, res) => {
     const { name, mobile_no, email, password } = req.body;
@@ -12,7 +14,6 @@ exports.userCreate = async (req, res) => {
 
         await pool.query(`SELECT * FROM account_create WHERE email = ${pool.escape(email)} OR mobile_no = ${pool.escape(mobile_no)};`,
             (err, result) => {
-                console.log('result', result)
                 if (result && result.length) {
                     return res.status(409).send({ msg: 'This mail id and mobile no is already in use!' })
                 } else {
@@ -22,33 +23,63 @@ exports.userCreate = async (req, res) => {
                         }
                         else {
                             let post = {
-                                name: name, mobile_no: mobile_no, email: email,
-                                password: hash, create_date: new Date()
+                                name: name, mobile_no: mobile_no, email: email, password: hash
                             };
                             let sql = 'INSERT INTO account_create SET ?'
                             pool.query(sql, post, (err, result) => {
                                 if (err) {
                                     return res.status(400).send({ msg: err })
-                                } else {
-                                    res.status(200).send({
-                                        msg: 'User has been registered with us!',
-                                    });
                                 }
+
+                                let mailSubject = 'Mail Verification';
+                                const rendomToken = rendomstring.generate();
+                                let contant = '<p>Hii ' + name + ', Please <a href="http://localhost:3002/mail-verification?token=' + rendomToken + '"> verify</a> your mail</p>';
+                                sendMail(email, mailSubject, contant);
+
+                                pool.query('UPDATE account_create SET token=? where email=?', [rendomToken, email], function (err, result) {
+                                    if (err) {
+                                        return res.status(400).send({ msg: err });
+                                    }
+                                })
+
+                                return res.status(200).send({
+                                    msg: 'User has been registered with us!',
+                                });
                             })
                         }
                     })
                 }
             }
         );
-
-
-
     } catch (e) {
         console.log(e)
 
         res.status(400).send(e);
     }
 };
+
+exports.verifyMail = (req, res) => {
+    var token = req.query.token;
+    console.log('res', res);
+
+    pool.query('SELECT * FROM account_create where token=? limit 1', token, function (err, result) {
+        if (err) {
+            console.log(err.message)
+        }
+
+        if (result.length > 0) {
+            pool.query(`UPDATE account_create SET token = null, is_verified = 1 WHERE id = ${result[0].id}`);
+            return res.render('mail-verification', { message: 'Mail Verifiled successfully!' })
+        }
+        else {
+            return res.render('404')
+        }
+    })
+}
+
+exports.login = (req, res) => {
+
+}
 
 // exports.studentsGet = async (req, res) => {
 //     try {
