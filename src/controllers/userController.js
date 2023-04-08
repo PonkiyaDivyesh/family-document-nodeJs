@@ -23,7 +23,7 @@ exports.userCreate = async (req, res) => {
                         }
                         else {
                             let post = {
-                                name: name, mobile_no: mobile_no, email: email, password: hash
+                                name: name, mobile_no: mobile_no, email: email, password: hash, is_verified: 0
                             };
                             let sql = 'INSERT INTO account_create SET ?'
                             pool.query(sql, post, (err, result) => {
@@ -77,9 +77,7 @@ exports.verifyMail = (req, res) => {
     })
 }
 
-exports.login = (req, res) => {
 
-}
 
 // exports.studentsGet = async (req, res) => {
 //     try {
